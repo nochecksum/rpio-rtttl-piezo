@@ -42,14 +42,15 @@ piezo.play({
 
 ## Repeat
 
-Repeat the melody 4 times:
+Repeat the melody 4 times with a 250ms delay between repetitions:
 
 ```js
 var piezo = require('rpio-rtttl-piezo');
 
 piezo.play({
   pwmOutputPin: 32,
-  repeat: 4
+  repeat: 4,
+  repeatDelay: 250
 });
 ```
 

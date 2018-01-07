@@ -34,10 +34,12 @@ RpioRtttlPiezo.prototype.play = function(opts) {
 		pwmClockDivider: 16,
 		pwmClockFreq: 1.2e6,
 		rtttl: 'Default:d=16,o=6,b=200:d,d#,e,f,f#',
-		repeat: 2,
-		dutyCycle: 32,
+		repeat: 1,
+		dutyCycle: 2,
 		freqMultiplier: 3,
-		playbackCounter: 0
+		repeatDelay: 250,
+		playbackCounter: 0,
+		noteCounter: 0
 	};
 	opts = objectAssign(defaults, opts);
 
@@ -60,27 +62,41 @@ RpioRtttlPiezo.prototype.play = function(opts) {
  * Continues playback of previously called play()
  */
 RpioRtttlPiezo.prototype.playNextNote = function(playable) {
-	var noteCounter = playable.playbackCounter%playable.repeat;
-	if (noteCounter < playable.tune.melody.length) {
-		var note = playable.tune.melody[noteCounter];
-		var freq = parseInt(note.frequency * playable.freqMultiplier);
+	var _this = this;
+	// Are we within melody repeat loop?
+	if (playable.playbackCounter < playable.repeat) {
+		// Are we within notes of melody?
+		if (playable.noteCounter < playable.tune.melody.length) {
 
-		if (freq) {
-			rpio.pwmSetRange(playable.pwmOutputPin, playable.pwmClockFreq/freq);
-			rpio.pwmSetData(playable.pwmOutputPin, (playable.pwmClockFreq/freq)/playable.dutyCycle);
+			// Get next note and calculate desired output frequency
+			var note = playable.tune.melody[playable.noteCounter];
+			var freq = parseInt(note.frequency * playable.freqMultiplier);
+
+			// Is a sound desired?
+			if (freq) {
+				// Set PWM range based on clock frequency, and PWM data based on duty cycle
+				rpio.pwmSetRange(playable.pwmOutputPin, playable.pwmClockFreq/freq);
+				rpio.pwmSetData(playable.pwmOutputPin, (playable.pwmClockFreq/freq)/playable.dutyCycle);
+			} else {
+				// Silence
+				rpio.pwmSetData(playable.pwmOutputPin, 0);
+			}
+
+			// Prepare for next note in melody sequence
+			playable.noteCounter++;
+			setTimeout(function(){ _this.playNextNote(playable); }, note.duration);
 		} else {
+			// End of melody, set silence
 			rpio.pwmSetData(playable.pwmOutputPin, 0);
+
+			// Prepare for playback repeat
+			playable.noteCounter = 0;
+			playable.playbackCounter++;
+			setTimeout(function(){ _this.playNextNote(playable); }, playable.repeatDelay);
 		}
 	} else {
+		// End of playback, set silence
 		rpio.pwmSetData(playable.pwmOutputPin, 0);
-	}
-
-	playable.playbackCounter++;
-	if (playable.playbackCounter < playable.tune.melody.length*playable.repeat) {
-		var _this = this;
-		setTimeout(function(){ _this.playNextNote(playable); }, note.duration);
-	} else {
-		setTimeout(function(){ rpio.pwmSetData(playable.pwmOutputPin, 0); }, note.duration);
 	}
 };
 
