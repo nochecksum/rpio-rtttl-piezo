@@ -23,6 +23,12 @@ var objectAssign = require('object-assign');
 var RpioRtttlPiezo = function () {};
 
 
+// Initiate GPIO output
+rpio.init({
+	gpiomem: false
+});
+
+
 /**
  * play(opts)
  * Begin playback on specified PWM pin with desired options
@@ -46,10 +52,6 @@ RpioRtttlPiezo.prototype.play = function(opts) {
 	// Parse RTTTL to playable notes
 	opts.tune = rtttlParse.parse(opts.rtttl);
 
-	// Initiate GPIO output
-	rpio.init({
-		gpiomem: false
-	});
 	rpio.open(opts.pwmOutputPin, rpio.PWM);
 	rpio.pwmSetClockDivider(opts.pwmClockDivider);
 
